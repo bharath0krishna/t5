@@ -1,0 +1,248 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Natural Language Database Query</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <!-- Navigation bar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">NL Database Query</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <span class="nav-link">Welcome, {{ user.username }}</span>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('auth.profile') }}">Profile</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <h1 class="text-center mb-4">Natural Language Database Query</h1>
+        
+        <div class="row">
+            <div class="col-md-8">
+                <!-- Natural Language Query Form -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>Ask in Plain English</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="nl-query-form">
+                            <div class="mb-3">
+                                <textarea class="form-control" id="nl-query" rows="3" placeholder="Example: 'Show me all employees in the Engineering department' or 'Create a new table for projects with id, name, and budget'"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Execute Query</button>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Generated SQL -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>Generated SQL</h5>
+                    </div>
+                    <div class="card-body">
+                        <pre id="sql-query">-- SQL query will appear here</pre>
+                        <button id="execute-sql-btn" class="btn btn-sm btn-secondary mt-2">Execute SQL Directly</button>
+                    </div>
+                </div>
+                
+                <!-- Results -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Results</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="results-area">
+                            <p class="text-muted">Results will appear here...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <!-- Database Schema -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Database Schema</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="schema-info">
+                            {% for table_name, columns in table_info.items() %}
+                                <div class="mb-3">
+                                    <h6 class="border-bottom pb-1">{{ table_name }}</h6>
+                                    <ul class="list-unstyled ms-3">
+                                        {% for col in columns %}
+                                            <li>
+                                                <strong>{{ col.name }}</strong> 
+                                                ({{ col.type }})
+                                                {% if col.primary_key %}
+                                                    <span class="badge bg-primary">PK</span>
+                                                {% endif %}
+                                                {% if col.not_null %}
+                                                    <span class="badge bg-secondary">NOT NULL</span>
+                                                {% endif %}
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <button id="refresh-schema-btn" class="btn btn-sm btn-outline-secondary">Refresh Schema</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            // Submit natural language query
+            $('#nl-query-form').on('submit', function(e) {
+                e.preventDefault();
+                const nlQuery = $('#nl-query').val();
+                
+                if (!nlQuery) return;
+                
+                $('#results-area').html('<p class="text-center"><strong>Processing...</strong></p>');
+                
+                $.ajax({
+                    url: '/query',
+                    method: 'POST',
+                    data: { nl_query: nlQuery },
+                    success: function(response) {
+                        if (response.success) {
+                            $('#sql-query').text(response.sql_query);
+                            displayResults(response.results, response.columns);
+                        } else {
+                            $('#results-area').html(`<div class="alert alert-danger">${response.error}</div>`);
+                        }
+                    },
+                    error: function() {
+                        $('#results-area').html('<div class="alert alert-danger">Error connecting to server</div>');
+                    }
+                });
+            });
+            
+            // Execute SQL directly
+            $('#execute-sql-btn').on('click', function() {
+                const sqlQuery = $('#sql-query').text();
+                
+                if (!sqlQuery || sqlQuery === '-- SQL query will appear here') return;
+                
+                $('#results-area').html('<p class="text-center"><strong>Executing...</strong></p>');
+                
+                $.ajax({
+                    url: '/execute_sql',
+                    method: 'POST',
+                    data: { sql_query: sqlQuery },
+                    success: function(response) {
+                        if (response.success) {
+                            displayResults(response.results, response.columns);
+                            // Refresh schema after potential DDL operations
+                            refreshSchema();
+                        } else {
+                            $('#results-area').html(`<div class="alert alert-danger">${response.error}</div>`);
+                        }
+                    },
+                    error: function() {
+                        $('#results-area').html('<div class="alert alert-danger">Error connecting to server</div>');
+                    }
+                });
+            });
+            
+            // Refresh schema
+            $('#refresh-schema-btn').on('click', function() {
+                refreshSchema();
+            });
+            
+            // Function to display results in a table
+            function displayResults(results, columns) {
+                if (!results || results.length === 0) {
+                    $('#results-area').html('<p class="text-success">Query executed successfully. No results to display.</p>');
+                    return;
+                }
+                
+                if (results[0].hasOwnProperty('error')) {
+                    $('#results-area').html(`<div class="alert alert-danger">${results[0].error}</div>`);
+                    return;
+                }
+                
+                let tableHtml = '<div class="table-responsive"><table class="table table-striped table-bordered">';
+                
+                // Table header
+                if (columns && columns.length) {
+                    tableHtml += '<thead><tr>';
+                    columns.forEach(column => {
+                        tableHtml += `<th>${column}</th>`;
+                    });
+                    tableHtml += '</tr></thead>';
+                }
+                
+                // Table body
+                tableHtml += '<tbody>';
+                results.forEach(row => {
+                    tableHtml += '<tr>';
+                    for (const key in row) {
+                        tableHtml += `<td>${row[key] !== null ? row[key] : 'NULL'}</td>`;
+                    }
+                    tableHtml += '</tr>';
+                });
+                tableHtml += '</tbody></table></div>';
+                
+                $('#results-area').html(tableHtml);
+            }
+            
+            // Function to refresh schema
+            function refreshSchema() {
+                $.ajax({
+                    url: '/get_schema',
+                    method: 'GET',
+                    success: function(tableInfo) {
+                        let schemaHtml = '';
+                        
+                        for (const tableName in tableInfo) {
+                            schemaHtml += `<div class="mb-3">
+                                <h6 class="border-bottom pb-1">${tableName}</h6>
+                                <ul class="list-unstyled ms-3">`;
+                            
+                            tableInfo[tableName].forEach(col => {
+                                schemaHtml += `<li>
+                                    <strong>${col.name}</strong> 
+                                    (${col.type})
+                                    ${col.primary_key ? '<span class="badge bg-primary">PK</span>' : ''}
+                                    ${col.not_null ? '<span class="badge bg-secondary">NOT NULL</span>' : ''}
+                                </li>`;
+                            });
+                            
+                            schemaHtml += '</ul></div>';
+                        }
+                        
+                        $('#schema-info').html(schemaHtml);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Talk4Data - Natural Language Database Query</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            background-color: #f8f9fa;
+        }
+        
+        #splash-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            width: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            background-color: #ffffff;
+            transition: opacity 0.5s ease-out;
+        }
+        
+        .logo-container {
+            position: relative;
+            margin-bottom: 2rem;
+        }
+        
+        .main-title {
+            font-size: 4rem;
+            font-weight: 700;
+            color: #2563eb;
+            letter-spacing: -1px;
+            margin-bottom: 1rem;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 1s ease forwards 0.5s;
+        }
+        
+        .tagline {
+            font-size: 1.25rem;
+            color: #64748b;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 1s ease forwards 0.8s;
+        }
+        
+        .data-circles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: -1;
+        }
+        
+        .circle {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0;
+            animation: float 5s infinite ease-in-out alternate;
+        }
+        
+        .circle:nth-child(1) {
+            width: 60px;
+            height: 60px;
+            background-color: rgba(59, 130, 246, 0.2);
+            top: -30px;
+            left: 10%;
+            animation-delay: 0.2s;
+        }
+        
+        .circle:nth-child(2) {
+            width: 40px;
+            height: 40px;
+            background-color: rgba(6, 182, 212, 0.2);
+            top: 50px;
+            right: 20%;
+            animation-delay: 0.5s;
+        }
+        
+        .circle:nth-child(3) {
+            width: 50px;
+            height: 50px;
+            background-color: rgba(124, 58, 237, 0.2);
+            bottom: -20px;
+            left: 30%;
+            animation-delay: 0.7s;
+        }
+        
+        .circle:nth-child(4) {
+            width: 30px;
+            height: 30px;
+            background-color: rgba(16, 185, 129, 0.2);
+            bottom: 40px;
+            right: 10%;
+            animation-delay: 1s;
+        }
+        
+        .progress-bar-container {
+            width: 200px;
+            height: 4px;
+            background-color: #e2e8f0;
+            border-radius: 2px;
+            margin-top: 2rem;
+            overflow: hidden;
+            opacity: 0;
+            animation: fadeIn 0.5s ease forwards 1.2s;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            width: 0;
+            background-color: #2563eb;
+            animation: progress 2s ease forwards 1.5s;
+        }
+        
+        .data-flow {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0;
+            animation: fadeIn 1s ease forwards 0.3s;
+        }
+        
+        .data-particle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background-color: #3b82f6;
+            border-radius: 50%;
+            opacity: 0.5;
+            animation: flowDown 3s infinite linear;
+        }
+
+        .login-button {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 1s ease forwards 2.5s;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        
+        @keyframes progress {
+            from {
+                width: 0;
+            }
+            to {
+                width: 100%;
+            }
+        }
+        
+        @keyframes float {
+            0% {
+                opacity: 0.6;
+                transform: translateY(0);
+            }
+            100% {
+                opacity: 0.9;
+                transform: translateY(-15px);
+            }
+        }
+        
+        @keyframes flowDown {
+            0% {
+                transform: translate(var(--x), -50px) scale(0.8);
+                opacity: 0;
+            }
+            20% {
+                opacity: 0.5;
+            }
+            80% {
+                opacity: 0.5;
+            }
+            100% {
+                transform: translate(var(--x), calc(100vh + 50px)) scale(1.2);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Splash Screen -->
+    <div id="splash-screen">
+        <div class="data-flow" id="dataFlow"></div>
+        
+        <div class="logo-container">
+            <div class="data-circles">
+                <div class="circle"></div>
+                <div class="circle"></div>
+                <div class="circle"></div>
+                <div class="circle"></div>
+            </div>
+            <h1 class="main-title">Talk4Data</h1>
+        </div>
+        
+        <p class="tagline">Speak the language of your database</p>
+        
+        <div class="progress-bar-container">
+            <div class="progress-bar"></div>
+        </div>
+
+        <div class="login-button mt-4">
+            <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-lg">Get Started</a>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script>
+        // Create data particles
+        const dataFlow = document.getElementById('dataFlow');
+        
+        for (let i = 0; i < 30; i++) {
+            const particle = document.createElement('div');
+            particle.classList.add('data-particle');
+            
+            // Random horizontal position
+            const xPos = Math.random() * 100;
+            particle.style.setProperty('--x', `${xPos}vw`);
+            particle.style.left = `${xPos}vw`;
+            
+            // Random size
+            const size = 3 + Math.random() * 5;
+            particle.style.width = `${size}px`;
+            particle.style.height = `${size}px`;
+            
+            // Random opacity
+            particle.style.opacity = 0.3 + Math.random() * 0.4;
+            
+            // Random delay
+            const delay = Math.random() * 5;
+            particle.style.animationDelay = `${delay}s`;
+            
+            // Random color
+            const colors = ['#3b82f6', '#06b6d4', '#8b5cf6', '#10b981'];
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            particle.style.backgroundColor = randomColor;
+            
+            dataFlow.appendChild(particle);
+        }
+        
+        // Allow users to click the button instead of automatic redirect
+        // But still redirect automatically after a longer delay
+        setTimeout(() => {
+            if (document.getElementById('splash-screen')) {
+                window.location.href = "{{ url_for('auth.login') }}";
+            }
+        }, 8000); // Longer timeout before automatic redirect
+    </script>
+</body>
+</html>
