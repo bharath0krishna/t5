@@ -5,7 +5,7 @@ import os
 from typing import Tuple, List, Dict, Any, Optional
 
 # Configure Gemini API
-GEMINI_API_KEY = "AIzaSyCp8DBUrl3mr3EIPli7H0UXgC6WZunmaNw"  # Replace with your actual API key
+# GEMINI_API_KEY = "google api key "   Replace with your actual API key
 genai.configure(api_key=GEMINI_API_KEY)
 
 def get_gemini_model():
